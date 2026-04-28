@@ -1,6 +1,5 @@
-GameYob v0.5.3-mavica
+GameYob v0.5.4-obykin
 Author: Drenn
-This branch maintained by: maple "mavica" syrup <maple@maple.pet>
 
 Files included:
 

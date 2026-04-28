@@ -15,10 +15,11 @@ enum {
     HUC3,
     HUC1,
     POCKET_CAM, // Pocket Camera mapper
+    MBC30, // Used by Japanese Pokemon Crystal & some ROM Hacks
     MBC_MAX,
 };
 
-#define CONFIG_FILENAME "/_nds/gameyobds.ini"
+#define CONFIG_FILENAME "/_pico/emulators/gameyobds.ini"
 
 #define BUTTONA		0x1
 #define BUTTONB		0x2

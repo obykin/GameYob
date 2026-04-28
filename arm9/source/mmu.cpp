@@ -200,6 +200,27 @@ u8 m3r (u16 addr) {
     }
 }
 
+/* MBC30 - Japanese Pokemon Crystal */
+u8 m30r (u16 addr) {
+    if (!ramEnabled)
+        return 0xff;
+
+    switch (currentRamBank) {
+        case 0x8:
+            return gbClock.mbc3.s;
+        case 0x9:
+            return gbClock.mbc3.m;
+        case 0xA:
+            return gbClock.mbc3.h;
+        case 0xB:
+            return gbClock.mbc3.d&0xff;
+        case 0xC:
+            return gbClock.mbc3.ctrl;
+        default:
+            return memory[addr>>12][addr&0xfff];
+    }
+}
+
 /* Pocket Camera mapper */
 u8 camr (u16 addr) {
     if (camRegistersEnabled) {
@@ -212,9 +233,8 @@ u8 camr (u16 addr) {
 }
 
 const mbcRead mbcReads[] = { 
-    NULL, NULL, NULL, m3r, NULL, NULL, NULL, h3r, NULL, camr
+    NULL, NULL, NULL, m3r, NULL, NULL, NULL, h3r, NULL, camr, m30r
 };
-
 
 void writeSram(u16 addr, u8 val) {
     int pos = addr + currentRamBank*0x2000;
@@ -359,6 +379,78 @@ void m3w(u16 addr, u8 val)
                     }
                     return;
                 default: // Not an RTC register
+                    if (numRamBanks)
+                        writeSram(addr&0x1fff, val);
+            }
+            break;
+    }
+}
+
+/* MBC30 - Japanese Pokemon Crystal */
+void m30w(u16 addr, u8 val)
+{
+    switch (addr >> 12) {
+        case 0x0: /* 0000 - 1fff */
+        case 0x1:
+            ramEnabled = ((val & 0xf) == 0xa);
+            break;
+        case 0x2: /* 2000 - 3fff */
+        case 0x3:
+            /* MBC30 uses full 8-bit ROM bank register, no mask */
+            refreshRomBank((val) ? val : 1);
+            break;
+        case 0x4: /* 4000 - 5fff */
+        case 0x5:
+            /* MBC30 supports RAM banks 0x0-0x7 (64KB SRAM) */
+            if (val <= 0x7)
+                refreshRamBank(val);
+            else if (val >= 0x8 && val <= 0xc)
+                currentRamBank = val;
+            break;
+        case 0x6: /* 6000 - 7fff */
+        case 0x7:
+            if (val)
+                latchClock();
+            break;
+        case 0xa: /* a000 - bfff */
+        case 0xb:
+            if (!ramEnabled)
+                break;
+            switch (currentRamBank) {
+                case 0x8:
+                    if (gbClock.mbc3.s != val) {
+                        gbClock.mbc3.s = val;
+                        writeClockStruct();
+                    }
+                    return;
+                case 0x9:
+                    if (gbClock.mbc3.m != val) {
+                        gbClock.mbc3.m = val;
+                        writeClockStruct();
+                    }
+                    return;
+                case 0xA:
+                    if (gbClock.mbc3.h != val) {
+                        gbClock.mbc3.h = val;
+                        writeClockStruct();
+                    }
+                    return;
+                case 0xB:
+                    if ((gbClock.mbc3.d&0xff) != val) {
+                        gbClock.mbc3.d &= 0x100;
+                        gbClock.mbc3.d |= val;
+                        writeClockStruct();
+                    }
+                    return;
+                case 0xC:
+                    if (gbClock.mbc3.ctrl != val) {
+                        gbClock.mbc3.d &= 0xFF;
+                        gbClock.mbc3.d |= (val&1)<<8;
+                        gbClock.mbc3.ctrl = val;
+                        writeClockStruct();
+                    }
+                    return;
+                default:
                     if (numRamBanks)
                         writeSram(addr&0x1fff, val);
             }
@@ -578,7 +670,7 @@ void camw (u16 addr, u8 val) {
 }
 
 const mbcWrite mbcWrites[] = {
-    m0w, m1w, m2w, m3w, NULL, m5w, NULL, h3w, h1w, camw
+    m0w, m1w, m2w, m3w, NULL, m5w, NULL, h3w, h1w, camw, m30w
 };
 
 void initMMU()
@@ -679,6 +771,7 @@ void latchClock()
 
     switch (MBC) {
         case MBC3:
+        case MBC30:
             gbClock.mbc3.s += lt->tm_sec;
             OVERFLOW(gbClock.mbc3.s, 60, gbClock.mbc3.m);
             gbClock.mbc3.m += lt->tm_min;

@@ -756,7 +756,10 @@ int loadRom(char* f)
                 //MBC = MMM01;
                 //break;
             case 0xf: case 0x10: case 0x11: case 0x12: case 0x13:
-                MBC = MBC3;
+                if (ramSize == 0x05) // MBC30 - Japanese Pokemon Crystal (64KB SRAM)
+                    MBC = MBC30;
+                else
+                    MBC = MBC3;
                 break;
                 //case 0x15: case 0x16: case 0x17:
                 //MBC = MBC4;
@@ -892,6 +895,9 @@ int loadSave()
             case 4:
                 numRamBanks = 16;
                 break;
+            case 5: // MBC30 (Japanese Pokemon Crystal) - 64KB SRAM
+                numRamBanks = 8;
+                break;
             default:
                 printLog("Invalid RAM bank number: %x\nDefaulting to 4 banks\n", ramSize);
                 numRamBanks = 4;
@@ -912,7 +918,7 @@ int loadSave()
     // Now load the data.
     saveFile = fopen(savename, "r+b");
     int neededFileSize = numRamBanks*0x2000;
-    if (MBC == MBC3 || MBC == HUC3)
+    if (MBC == MBC3 || MBC == MBC30 || MBC == HUC3)
         neededFileSize += sizeof(clockStruct);
 
     int fileSize = 0;
@@ -945,6 +951,7 @@ int loadSave()
 
     switch (MBC) {
         case MBC3:
+        case MBC30:
         case HUC3:
             fread(&gbClock, 1, sizeof(gbClock), saveFile);
             break;
@@ -966,6 +973,7 @@ int saveGame()
 
     switch (MBC) {
         case MBC3:
+        case MBC30:
         case HUC3:
             fwrite(&gbClock, 1, sizeof(gbClock), saveFile);
             break;
@@ -1082,7 +1090,7 @@ char* getRomTitle() {
     return romTitle;
 }
 
-const char *mbcName[] = {"ROM","MBC1","MBC2","MBC3","MBC4","MBC5","MBC7","HUC3","HUC1","POCKET_CAM"};
+const char *mbcName[] = {"ROM","MBC1","MBC2","MBC3","MBC4","MBC5","MBC7","HUC3","HUC1","POCKET_CAM","MBC30"};
 
 void printRomInfo() {
     consoleClear();

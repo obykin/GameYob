@@ -1,3 +1,10 @@
+Version 0.5.4-obykin
+
+-Added support for the MBC30 mapper. 
+  - Japanese version of Pokemon Crystal is now supported and MBC30-based ROM hacks should work as well.
+- DSPico: Config file has been moved from /_nds/ to /_pico/emulators/.
+  - Ex: /_pico/emulators/gameyobds.ini
+
 Version 0.5.3-mavica
 
 - Pocket Camera mapper support using DSi cameras (thanks Epicpkmn11!).
